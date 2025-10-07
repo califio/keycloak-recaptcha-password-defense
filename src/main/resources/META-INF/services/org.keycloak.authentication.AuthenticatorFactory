@@ -1,0 +1,2 @@
+io.calif.keycloak.recaptchapassworddefense.RecaptchaPasswordDefenseLoginFormFactory
+io.calif.keycloak.recaptchapassworddefense.BreachConditionalStepUpFactory

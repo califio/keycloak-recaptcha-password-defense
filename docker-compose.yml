@@ -1,0 +1,14 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.3.5 # https://github.com/keycloak/keycloak/releases
+    command:
+      - start-dev
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      # you can add DB_* variables if you want to use Postgres/MySQL instead of H2
+    ports:
+      - "8080:8080"
+    volumes:
+      # mount your custom extension code (compiled JARs) here
+      - ./providers:/opt/keycloak/providers

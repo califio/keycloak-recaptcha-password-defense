@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Prepare real scenario environment
+        run: |
+          if [ -n "${REAL_SERVICE_ACCOUNT}" ]; then
+            if [ -n "${REAL_PROJECT_ID}" ]; then
+              echo "COMPATIBILITY_REAL_PROJECT_ID=${REAL_PROJECT_ID}" >> $GITHUB_ENV
+            fi
+            if [ -n "${REAL_VERIFY_BREACH}" ]; then
+              echo "COMPATIBILITY_REAL_VERIFY_BREACH=${REAL_VERIFY_BREACH}" >> $GITHUB_ENV
+            fi
+            {
+              echo "COMPATIBILITY_REAL_SERVICE_ACCOUNT<<EOF";
+              echo "${REAL_SERVICE_ACCOUNT}";
+              echo "EOF";
+            } >> $GITHUB_ENV
+          else
+            echo "COMPATIBILITY_REAL_VERIFY_BREACH=false" >> $GITHUB_ENV
+          fi
+        env:
+          REAL_PROJECT_ID: ${{ vars.COMPATIBILITY_REAL_PROJECT_ID }}
+          REAL_VERIFY_BREACH: ${{ vars.COMPATIBILITY_REAL_VERIFY_BREACH }}
+          REAL_SERVICE_ACCOUNT: ${{ secrets.COMPATIBILITY_REAL_SERVICE_ACCOUNT }}
+
+      - name: Run tests
+        run: mvn -B -ntp verify
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build shaded package
+        run: mvn -B -ntp -DskipTests=true clean package
+
+      - name: Upload JAR as release asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: target/recaptchapassworddefense-*.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Persist build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-build
+          path: target/recaptchapassworddefense-*.jar
