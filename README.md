@@ -1,17 +1,36 @@
 # Keycloak reCAPTCHA Password Defense
 
-Drop-in provider for Keycloak 22+ that checks username/password submissions with
+Drop-in provider for Keycloak 22+ that detects password leaks and breached credentials with
 Google [reCAPTCHA Enterprise – Password Defense](https://cloud.google.com/recaptcha/docs/check-passwords).
-Tested with Keycloak 22.0.5 through 26.4.0.
+Tested with Keycloak 22 -> 26.
 
-When users log in, if reCAPTCHA flags the credentials as breached, the extension applies an adaptive policy:
+When users log in, if reCAPTCHA flags the credentials as breached:
 
 * **User has another strong factor (OTP / WebAuthn / Passkey)** → challenge with that factor, then require a password change.
 * **User has no strong factor** → disable the account and show a contact-admin message (unless you enable *Unsafe mode – Do not disable account*).
 
-For password updates and registration, the extension blocks the use of breached credentials.
+For password updates and registration, this provider also blocks breached credentials.
 
 > Implementation follows Google’s documented **Private Password Leak Verification** flow and uses the official helper library to perform the cryptographic handshake locally so plaintext credentials are never sent to Google. See: [Detect password leaks and breached credentials](https://cloud.google.com/recaptcha/docs/check-passwords) and the Java helper lib [recaptcha-password-check-helpers](https://github.com/GoogleCloudPlatform/java-recaptcha-password-check-helpers).
+
+---
+
+## Screenshots
+
+<table>
+  <tr>
+    <td><img alt="Login with breached credentials blocked" src="docs/screenshots/login-block.png" /></td>
+    <td><img alt="Force changing breached credentials" src="docs/screenshots/login-force-change-password.png" /></td>
+  </tr>
+  <tr>
+    <td><img alt="Signing up with breached credentials blocked" src="docs/screenshots/register-block.png" /></td>
+    <td><img alt="Updating password with breached credentials blocked" src="docs/screenshots/update-password-block.png" /></td>
+  </tr>
+  <tr>
+    <td><img alt="Notification email to admin" src="docs/screenshots/notify-email-to-admin.png" /></td>
+    <td><img alt="Notification email to user" src="docs/screenshots/notify-email-to-user.png" /></td>
+  </tr>
+</table>
 
 ---
 
@@ -96,7 +115,7 @@ cp target/recaptchapassworddefense-<version>-shaded.jar "$KEYCLOAK_HOME/provider
      - **Unsafe mode - Do not disable account** – if `true`, breached accounts are allowed to continue (default `false`, safe mode).
 
 5. **SMTP**
-   - Make sure **Realm Settings → Email** is configured; the extension uses Keycloak’s `EmailSenderProvider` to notify admins.
+   - Make sure **Realm Settings → Email** is configured as this provider uses Keycloak’s `EmailSenderProvider` to notify admins.
 
 ---
 
@@ -129,7 +148,7 @@ cp target/recaptchapassworddefense-<version>-shaded.jar "$KEYCLOAK_HOME/provider
 
 ## Customize user-facing messages
 
-The extension ships an English message bundle (`theme-resources/messages/messages_en.properties`) so all UI strings can be overridden per realm using Keycloak’s localization feature.
+This provider ships a default English message bundle (`theme-resources/messages/messages_en.properties`) so all UI strings can be overridden per realm using Keycloak’s localization feature.
 
 1. In the Admin Console go to **Realm Settings → Localization**.
 2. In tab **Realms overrides** → pick the locale you want to override (e.g. `English`).
